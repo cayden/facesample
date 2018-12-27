@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 
-public class NxpRtsp  {
+public class Rtsp {
 
     private String mUrl;
     private MediaPlayer mMediaPlayer = null;
@@ -31,8 +31,8 @@ public class NxpRtsp  {
     private SurfaceView msView = null;
     private TextureView mtView = null;
     private Thread mGetFrameBufferThread;
-    private NxpRtspCallbackInterface mNxpRtspCallbackInterface=null;
-    private String TAG ="NxpRtsp";
+    private RtspCallbackInterface mNxpRtspCallbackInterface=null;
+    private String TAG ="Rtsp";
     private MediaCodec mMediaCodec = null;
     private MediaFormat mOutFormat;
     private SurfaceView mSurfaceView = null;
@@ -47,7 +47,7 @@ public class NxpRtsp  {
     public int[] frameInfo = new int[2];
 
 
-    public NxpRtsp(Context context, NxpRtspCallbackInterface callback){
+    public Rtsp(Context context, RtspCallbackInterface callback){
         mContext=context;
         mNxpRtspCallbackInterface=callback;
     }

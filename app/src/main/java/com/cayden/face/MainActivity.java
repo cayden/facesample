@@ -11,8 +11,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.cayden.face.vlc.NxpRtsp;
-import com.cayden.face.vlc.NxpRtspCallbackInterface;
+import com.cayden.face.vlc.Rtsp;
+import com.cayden.face.vlc.RtspCallbackInterface;
 import com.cayden.face.vlc.UrlInfo;
 import com.cayden.face.vlc.UrlInfoService;
 
@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity   {
     private int orientation;
     private SurfaceView mVideoTexture = null;
     private MediaPlayer mediaPlayer;
-    private NxpRtsp mNxpRtsp;
+    private Rtsp mNxpRtsp;
     private SurfaceView draw_view;
 
 
@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity   {
         mBtnStop.setOnClickListener(onClickListener_Stop);
 
 
-        mNxpRtsp=new NxpRtsp(this, new NxpRtspCallbackInterface() {
+        mNxpRtsp=new Rtsp(this, new RtspCallbackInterface() {
             @Override
             public void decodeOutputBuffer(int frameLen, byte[] frameBuffer,long width,long height) {
                 Log.d(TAG,"Get frameLen :"+frameLen+" width :"+width+" height :"+height);
