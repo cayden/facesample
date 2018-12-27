@@ -1,0 +1,66 @@
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+
+     <EditText
+         android:id="@+id/edit_net_address"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:text="rtsp://admin:adminTUSI@192.168.1.64:554/h264/ch1/sub/av_stream">
+     </EditText>
+    <!--http://live.hkstv.hk.lxdns.com/live/hks/playlist.m3u8-->
+     <LinearLayout
+         android:id="@+id/sel_Buttons"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:layout_below="@id/edit_net_address"
+         android:orientation="horizontal" >
+
+         <Button
+             android:id="@+id/btn_start_play"
+             android:layout_width="70dp"
+             android:layout_height="25dp"
+             style="@style/Widget.AppCompat.Button"
+             android:background="@mipmap/btn_main"
+             android:textSize="12dp"
+             android:text="start" />
+
+         <Button
+             android:id="@+id/btn_stop"
+             android:layout_width="70dp"
+             android:layout_height="25dp"
+             style="@style/Widget.AppCompat.Button"
+             android:background="@mipmap/btn_main"
+             android:textSize="12dp"
+             android:text="stop" />
+
+         <Button
+             android:id="@+id/run_verify"
+             android:layout_width="70dp"
+             android:layout_height="25dp"
+             android:layout_toLeftOf="@+id/view0"
+             style="@style/Widget.AppCompat.Button"
+             android:background="@mipmap/btn_main"
+             android:textSize="12dp"
+             android:text="人脸追踪" />
+         <Button
+             android:id="@+id/pic_save"
+             android:layout_width="70dp"
+             android:layout_height="25dp"
+             android:layout_toLeftOf="@+id/view0"
+             style="@style/Widget.AppCompat.Button"
+             android:background="@mipmap/btn_main"
+             android:textSize="12dp"
+             android:text="保存图片" />
+     </LinearLayout>
+    <include
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/sel_Buttons"
+        layout="@layout/camera_view" />
+
+</RelativeLayout>
