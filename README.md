@@ -1,6 +1,7 @@
-#facesample
+# facesample
 
-本项目主要基于vlc 来播放流媒体视频
+本项目主要基于vlc来播放流媒体视频
+
 主要包含以下内容
 
 - 1、使用已经编译的libvlc来播放流媒体视频
@@ -10,6 +11,6 @@
 - 未完待续...
 
 
-###v1.0.0
+### v1.0.0
    - 1, added libvlc
    - 2, support for playing rtsp video stream
