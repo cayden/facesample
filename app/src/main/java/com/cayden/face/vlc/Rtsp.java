@@ -214,7 +214,9 @@ public class Rtsp {
                 if(mRun) {
 //                    sleep(100);
                      len = mMediaPlayer.getBuffer(frameData, frameInfo);
-                     mNxpRtspCallbackInterface.decodeOutputBuffer(len,frameData,frameInfo[0],frameInfo[1]);
+                     if(len>0){
+                         mNxpRtspCallbackInterface.decodeOutputBuffer(len,frameData,frameInfo[0],frameInfo[1]);
+                     }
 //                    LocalFaceSDK.getInstance(null).cwPushBinaryFrame(frameData, frameInfo[0], frameInfo[1],
 //                            FaceInterface.cw_img_form_t.CW_IMAGE_NV12, CaremaType.BACK_LANDSCAPE);
                 }

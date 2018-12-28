@@ -10,9 +10,13 @@
          android:id="@+id/edit_net_address"
          android:layout_width="match_parent"
          android:layout_height="wrap_content"
-         android:text="rtsp://admin:adminTUSI@192.168.1.64:554/h264/ch1/sub/av_stream">
+         android:text="  rtsp://admin:adminTUSI@192.168.1.64:554/h264/ch1/sub/av_stream">
      </EditText>
-    <!--http://live.hkstv.hk.lxdns.com/live/hks/playlist.m3u8-->
+    <!--
+    rtsp://218.204.223.237:554/live/1/6D1E43167B3A7BDA/oby9efo80duh9bjf.sdp
+    rtsp://admin:adminTUSI@192.168.1.64:554/h264/ch1/sub/av_stream
+    http://live.hkstv.hk.lxdns.com/live/hks/playlist.m3u8
+    -->
      <LinearLayout
          android:id="@+id/sel_Buttons"
          android:layout_width="match_parent"
