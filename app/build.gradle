@@ -44,6 +44,6 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     compile(name: 'libvlc-3.0.0', ext: 'aar')
     implementation files('libs/androidutils.jar')
-
+    compile 'org.tensorflow:tensorflow-android:+'
 
 }

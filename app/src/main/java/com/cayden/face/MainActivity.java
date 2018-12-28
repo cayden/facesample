@@ -1,7 +1,13 @@
 package com.cayden.face;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.media.MediaPlayer;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -11,12 +17,22 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.cayden.face.utils.ImageUtils;
+import com.cayden.face.utils.NV21ToBitmap;
+import com.cayden.face.vlc.ConstData;
 import com.cayden.face.vlc.Rtsp;
 import com.cayden.face.vlc.RtspCallbackInterface;
 import com.cayden.face.vlc.UrlInfo;
 import com.cayden.face.vlc.UrlInfoService;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
+/**
+ * 启动类
+ */
 public class MainActivity extends AppCompatActivity   {
 
     private static String TAG = "MainActivity";
@@ -39,6 +55,7 @@ public class MainActivity extends AppCompatActivity   {
     private EditText mEditNetAddress;
     Button mRun_verify,mPicSave;
     boolean isSave=false;
+    protected int iw = 0, ih;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,11 +92,80 @@ public class MainActivity extends AppCompatActivity   {
 
         mNxpRtsp=new Rtsp(this, new RtspCallbackInterface() {
             @Override
-            public void decodeOutputBuffer(int frameLen, byte[] frameBuffer,long width,long height) {
+            public void decodeOutputBuffer(int frameLen, byte[] bytes,long width,long height) {
                 Log.d(TAG,"Get frameLen :"+frameLen+" width :"+width+" height :"+height);
+                if(frameLen==0) return;
+                if (iw == 0) {
+                    iw=(int)width;
+                    ih=(int)height;
+                }
+
+//                if (isSave) {
+//                    mPictureSave(bytes);
+//                    isSave = false;
+//                }
+                /**
+                 * 将bytes转为bitmap
+                 */
+                Bitmap bitmap = null;
+                byte[] NV21 = new byte[bytes.length];
+                NV12ToNV21(bytes, NV21,iw, ih);
+                NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(MainActivity.this);
+                bitmap = nv21ToBitmap.nv21ToBitmap(NV21, iw, ih);
+                if(isSave){
+                    ImageUtils.saveImg(bitmap);
+                    isSave=false;
+                }
+                bitmap.recycle();
             }
         });
 
+    }
+
+
+    public static String tempTarget = Environment.getExternalStorageDirectory() + File.separator + "CWModels" + File.separator + "Register.jpg";
+
+    /**
+     * 保存图片
+     *
+     * @param data
+     */
+    public void mPictureSave(byte[] data) {
+        byte[] NV21 = new byte[data.length];
+        NV12ToNV21(data, NV21, ConstData.DEFAULT_PREVIEW_WIDTH, ConstData.DEFAULT_PREVIEW_HEIGHT);
+        YuvImage yuvImage = new YuvImage(NV21, ImageFormat.NV21, ConstData.DEFAULT_PREVIEW_WIDTH, ConstData.DEFAULT_PREVIEW_HEIGHT, null);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        yuvImage.compressToJpeg(new Rect(0, 0, ConstData.DEFAULT_PREVIEW_WIDTH, ConstData.DEFAULT_PREVIEW_HEIGHT), 80, baos);
+        byte[] jdata = baos.toByteArray();
+        Bitmap bitmap = BitmapFactory.decodeByteArray(jdata, 0, jdata.length);
+        File file = null;
+        file = new File(tempTarget);
+        FileOutputStream fileOutputStream = null;
+        try {
+            fileOutputStream = new FileOutputStream(file);
+            fileOutputStream.write(jdata);
+            fileOutputStream.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void NV12ToNV21(byte[] nv12, byte[] nv21, int width, int height) {
+        if (nv21 == null || nv12 == null) return;
+        int framesize = width * height;
+        int i = 0, j = 0;
+        //System.arraycopy(nv21, test, nv12, test, framesize);
+        for (i = 0; i < framesize; i++) {
+            nv21[i] = nv12[i];
+        }
+        for (j = 0; j < framesize / 2; j += 2) {
+            nv21[framesize + j] = nv12[j + framesize + 1];
+        }
+        for (j = 0; j < framesize / 2; j += 2) {
+            nv21[framesize + j + 1] = nv12[j + framesize];
+        }
     }
 
     private View.OnClickListener onClickListener_run=new View.OnClickListener() {

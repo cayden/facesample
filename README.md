@@ -10,7 +10,11 @@
 - 4、使用FACENET进行人脸比对
 - 未完待续...
 
+### v1.0.1
+   - 1, 获取返回的视频流数据
+   - 2, 将数据nv12转换为nv21,并保存图片
 
 ### v1.0.0
    - 1, added libvlc
    - 2, support for playing rtsp video stream
+   
