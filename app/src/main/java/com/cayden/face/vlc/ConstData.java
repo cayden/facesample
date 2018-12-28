@@ -8,8 +8,8 @@ public class ConstData {
 	public static final String DB_DIRECTORY = CommonValues.application.getFilesDir().getPath();
 	public static final String DB_NAME = "udp_player.db";
 
-	public static final int DEFAULT_PREVIEW_WIDTH = 704;
-	public static final int DEFAULT_PREVIEW_HEIGHT = 576;
+	public static final int DEFAULT_PREVIEW_WIDTH = 800;
+	public static final int DEFAULT_PREVIEW_HEIGHT = 654;
 	public static final int PIXEL_SIZE = 4;
 	public static final int DEFAULT_PREVIEW_MODE = 0;
 	public static final int DEFAULT_PREVIEW_MIN_FPS = 1;

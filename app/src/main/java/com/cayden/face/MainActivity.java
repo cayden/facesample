@@ -70,7 +70,8 @@ public class MainActivity extends AppCompatActivity {
     Button mRun_verify, mPicSave;
     boolean isSave = false;
     protected int iw = 0, ih;
-
+    private float scale_bit = 0;
+    private final Object lock = new Object();
     private Facenet facenet;
     private MTCNN mtcnn;
 
@@ -95,8 +96,8 @@ public class MainActivity extends AppCompatActivity {
         mEditNetAddress = (EditText) findViewById(R.id.edit_net_address);
 
         init();
-        facenet=Facenet.getInstance();
-        mtcnn=MTCNN.getInstance();
+        facenet = Facenet.getInstance();
+        mtcnn = MTCNN.getInstance();
     }
 
 
@@ -118,13 +119,13 @@ public class MainActivity extends AppCompatActivity {
                     iw = (int) width;
                     ih = (int) height;
 
-                    int surface_w = mVideoTexture.getLayoutParams().width;
-                    int surface_h = mVideoTexture.getLayoutParams().height;
-
+                    int surface_w = mVideoTexture.getWidth();
+                    int surface_h = mVideoTexture.getHeight();
+                    scale_bit = (float) surface_h / ih;
                     ViewGroup.LayoutParams params = draw_view.getLayoutParams();
-                    params.width = iw;
-                    params.height = ih;
-                    DLog.d("scale_bit:" + 1 + ",surface_w:" + surface_w + ",surface_h:" + surface_h + ",iw:" + iw + ",ih:" + ih);
+                    params.width = surface_w;
+                    params.height = surface_w;
+                    DLog.d("scale_bit:" + scale_bit + ",surface_w:" + surface_w + ",surface_h:" + surface_h + ",iw:" + iw + ",ih:" + ih);
                     draw_view.requestLayout();
                 }
 
@@ -135,18 +136,21 @@ public class MainActivity extends AppCompatActivity {
                 /**
                  * 将bytes转为bitmap
                  */
-                Bitmap bitmap = null;
-                byte[] NV21 = new byte[bytes.length];
-                NV12ToNV21(bytes, NV21, iw, ih);
-                NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(MainActivity.this);
-                bitmap = nv21ToBitmap.nv21ToBitmap(NV21, iw, ih);
-                if (isSave) {//保存图片
-                    ImageUtils.saveImg(bitmap);
-                    isSave = false;
+                synchronized (lock) {
+                    Bitmap bitmap = null;
+                    byte[] NV21 = new byte[bytes.length];
+                    NV12ToNV21(bytes, NV21, iw, ih);
+                    NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(MainActivity.this);
+                    bitmap = nv21ToBitmap.nv21ToBitmap(NV21, iw, ih);
+                    if (isSave) {//保存图片
+                        ImageUtils.saveImg(bitmap);
+                        isSave = false;
+                    }
+                    Vector<Box> boxes = mtcnn.detectFaces(bitmap, 20);
+                    drawAnim(boxes, draw_view, scale_bit, 1, "");
+                    bitmap.recycle();
                 }
-                Vector<Box> boxes=mtcnn.detectFaces(bitmap,40);
-                drawAnim(boxes,draw_view,1,1,"");
-                bitmap.recycle();
+
             }
         });
 
@@ -154,34 +158,30 @@ public class MainActivity extends AppCompatActivity {
 
 
     protected void drawAnim(Vector<Box> faces, SurfaceView outputView, float scale_bit, int cameraId, String fps) {
-        Paint paint=new Paint();
+        Paint paint = new Paint();
         Canvas canvas = ((SurfaceView) outputView).getHolder().lockCanvas();
-        if(canvas!=null){
-            try{
-                int viewH=outputView.getHeight();
-                int viewW=outputView.getWidth();
+        if (canvas != null) {
+            try {
+                int viewH = outputView.getHeight();
+                int viewW = outputView.getWidth();
+//                DLog.d("viewW:"+viewW+",viewH:"+viewH);
                 canvas.drawColor(0, PorterDuff.Mode.CLEAR);
-                if(faces==null||faces.size()==0)return;
-                for(int i=0;i<faces.size();i++){
+                if (faces == null || faces.size() == 0) return;
+                for (int i = 0; i < faces.size(); i++) {
                     paint.setColor(Color.BLUE);
                     int size = DisplayUtil.dip2px(this, 3);
                     paint.setStrokeWidth(size);
                     paint.setStyle(Paint.Style.STROKE);
-                    Box box=faces.get(i);
-                    float[] rect=box.transform2float();
-                    float x1 = viewW - rect[0] * scale_bit - rect[2] * scale_bit;
-                    if (cameraId == (FaceApplication.yu ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK))
-                        x1 = rect[0] * scale_bit;
+                    Box box = faces.get(i);
+                    float[] rect = box.transform2float();
+                    float x1 = rect[0] * scale_bit;
                     float y1 = rect[1] * scale_bit;
-                    float rect_width = rect[2] * scale_bit*0.8f;
-//
+                    float rect_width = rect[2] * 0.5F;
                     RectF rectf = new RectF(x1, y1, x1 + rect_width, y1 + rect_width);
                     canvas.drawRect(rectf, paint);
-
-//
                 }
 
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 ((SurfaceView) outputView).getHolder().unlockCanvasAndPost(canvas);

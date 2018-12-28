@@ -85,14 +85,14 @@ public class Rtsp {
         media.addOption(":sout-mux-caching=150");
         media.addOption(":live-caching=150");
         mMediaPlayer.setMedia(media);
-
+//
         mMediaPlayer.getVLCVout().setWindowSize(ConstData.DEFAULT_PREVIEW_WIDTH,ConstData.DEFAULT_PREVIEW_HEIGHT);
         mMediaPlayer.setAspectRatio(ConstData.DEFAULT_PREVIEW_WIDTH+":"+ConstData.DEFAULT_PREVIEW_HEIGHT);
         mMediaPlayer.setScale(0);
 
         media.release();
         float scale=704/576;
-        vlcVout.setWindowSize(800,(int)(800/scale));
+//        vlcVout.setWindowSize(1280,(int)(1280/scale));
 //        vlcVout.setWindowSize(1280,720);
         //creat a thread to get the  frame data
         this.mGetFrameBufferThread=new Thread(this.mGetFrameBufferRun);

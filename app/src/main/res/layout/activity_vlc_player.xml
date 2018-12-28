@@ -58,8 +58,13 @@
              android:text="保存图片" />
      </LinearLayout>
     <include
+        android:layout_marginTop="167dp"
+        android:layout_marginBottom="350dp"
+        android:layout_marginLeft="80dp"
+        android:layout_marginRight="80dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_gravity="center_vertical|center_horizontal"
         android:layout_below="@+id/sel_Buttons"
         layout="@layout/camera_view" />
 
