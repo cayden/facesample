@@ -2,10 +2,16 @@ package com.cayden.face;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.YuvImage;
+import android.hardware.Camera;
 import android.media.MediaPlayer;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -14,9 +20,13 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.cayden.face.facenet.Box;
+import com.cayden.face.facenet.Facenet;
+import com.cayden.face.facenet.MTCNN;
 import com.cayden.face.utils.ImageUtils;
 import com.cayden.face.utils.NV21ToBitmap;
 import com.cayden.face.vlc.ConstData;
@@ -29,11 +39,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Vector;
+
+import dou.utils.DLog;
+import dou.utils.DisplayUtil;
 
 /**
  * 启动类
  */
-public class MainActivity extends AppCompatActivity   {
+public class MainActivity extends AppCompatActivity {
 
     private static String TAG = "MainActivity";
     private static final String RTSP_URL_MAIN = "rtsp://admin:adminTUSI@192.168.1.64:554/h264/main/av_stream";
@@ -53,9 +67,13 @@ public class MainActivity extends AppCompatActivity   {
     private Button mBtnStartPlay;
 
     private EditText mEditNetAddress;
-    Button mRun_verify,mPicSave;
-    boolean isSave=false;
+    Button mRun_verify, mPicSave;
+    boolean isSave = false;
     protected int iw = 0, ih;
+
+    private Facenet facenet;
+    private MTCNN mtcnn;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,17 +85,18 @@ public class MainActivity extends AppCompatActivity   {
         draw_view.getHolder().setFormat(PixelFormat.TRANSLUCENT);
 
 
-        mBtnStop=(Button)findViewById(R.id.btn_stop);
-        mBtnStartPlay=(Button)findViewById(R.id.btn_start_play);
+        mBtnStop = (Button) findViewById(R.id.btn_stop);
+        mBtnStartPlay = (Button) findViewById(R.id.btn_start_play);
 
-        mRun_verify=(Button)findViewById(R.id.run_verify);
+        mRun_verify = (Button) findViewById(R.id.run_verify);
         mRun_verify.setOnClickListener(onClickListener_run);
-        mPicSave=(Button)findViewById(R.id.pic_save);
+        mPicSave = (Button) findViewById(R.id.pic_save);
         mPicSave.setOnClickListener(onClickListener_PicSave);
-        mEditNetAddress=(EditText)findViewById(R.id.edit_net_address);
+        mEditNetAddress = (EditText) findViewById(R.id.edit_net_address);
 
         init();
-
+        facenet=Facenet.getInstance();
+        mtcnn=MTCNN.getInstance();
     }
 
 
@@ -90,14 +109,23 @@ public class MainActivity extends AppCompatActivity   {
         mBtnStop.setOnClickListener(onClickListener_Stop);
 
 
-        mNxpRtsp=new Rtsp(this, new RtspCallbackInterface() {
+        mNxpRtsp = new Rtsp(this, new RtspCallbackInterface() {
             @Override
-            public void decodeOutputBuffer(int frameLen, byte[] bytes,long width,long height) {
-                Log.d(TAG,"Get frameLen :"+frameLen+" width :"+width+" height :"+height);
-                if(frameLen==0) return;
+            public void decodeOutputBuffer(int frameLen, byte[] bytes, long width, long height) {
+                Log.d(TAG, "Get frameLen :" + frameLen + " width :" + width + " height :" + height);
+                if (frameLen == 0) return;
                 if (iw == 0) {
-                    iw=(int)width;
-                    ih=(int)height;
+                    iw = (int) width;
+                    ih = (int) height;
+
+                    int surface_w = mVideoTexture.getLayoutParams().width;
+                    int surface_h = mVideoTexture.getLayoutParams().height;
+
+                    ViewGroup.LayoutParams params = draw_view.getLayoutParams();
+                    params.width = iw;
+                    params.height = ih;
+                    DLog.d("scale_bit:" + 1 + ",surface_w:" + surface_w + ",surface_h:" + surface_h + ",iw:" + iw + ",ih:" + ih);
+                    draw_view.requestLayout();
                 }
 
 //                if (isSave) {
@@ -109,17 +137,56 @@ public class MainActivity extends AppCompatActivity   {
                  */
                 Bitmap bitmap = null;
                 byte[] NV21 = new byte[bytes.length];
-                NV12ToNV21(bytes, NV21,iw, ih);
+                NV12ToNV21(bytes, NV21, iw, ih);
                 NV21ToBitmap nv21ToBitmap = new NV21ToBitmap(MainActivity.this);
                 bitmap = nv21ToBitmap.nv21ToBitmap(NV21, iw, ih);
-                if(isSave){
+                if (isSave) {//保存图片
                     ImageUtils.saveImg(bitmap);
-                    isSave=false;
+                    isSave = false;
                 }
+                Vector<Box> boxes=mtcnn.detectFaces(bitmap,40);
+                drawAnim(boxes,draw_view,1,1,"");
                 bitmap.recycle();
             }
         });
 
+    }
+
+
+    protected void drawAnim(Vector<Box> faces, SurfaceView outputView, float scale_bit, int cameraId, String fps) {
+        Paint paint=new Paint();
+        Canvas canvas = ((SurfaceView) outputView).getHolder().lockCanvas();
+        if(canvas!=null){
+            try{
+                int viewH=outputView.getHeight();
+                int viewW=outputView.getWidth();
+                canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+                if(faces==null||faces.size()==0)return;
+                for(int i=0;i<faces.size();i++){
+                    paint.setColor(Color.BLUE);
+                    int size = DisplayUtil.dip2px(this, 3);
+                    paint.setStrokeWidth(size);
+                    paint.setStyle(Paint.Style.STROKE);
+                    Box box=faces.get(i);
+                    float[] rect=box.transform2float();
+                    float x1 = viewW - rect[0] * scale_bit - rect[2] * scale_bit;
+                    if (cameraId == (FaceApplication.yu ? Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK))
+                        x1 = rect[0] * scale_bit;
+                    float y1 = rect[1] * scale_bit;
+                    float rect_width = rect[2] * scale_bit*0.8f;
+//
+                    RectF rectf = new RectF(x1, y1, x1 + rect_width, y1 + rect_width);
+                    canvas.drawRect(rectf, paint);
+
+//
+                }
+
+            }catch (Exception e){
+                e.printStackTrace();
+            } finally {
+                ((SurfaceView) outputView).getHolder().unlockCanvasAndPost(canvas);
+            }
+        }
     }
 
 
@@ -168,48 +235,55 @@ public class MainActivity extends AppCompatActivity   {
         }
     }
 
-    private View.OnClickListener onClickListener_run=new View.OnClickListener() {
+    private View.OnClickListener onClickListener_run = new View.OnClickListener() {
         @Override
-        public void onClick(View v){
+        public void onClick(View v) {
 
 
-                //  mRegisterStatus.setText("");
-                //  mEditText.setText("");
-                mRun_verify.setClickable(false);
-                //mBackgroundHandler1.post(new ImageProcess());
+            //  mRegisterStatus.setText("");
+            //  mEditText.setText("");
+            mRun_verify.setClickable(false);
+            //mBackgroundHandler1.post(new ImageProcess());
 
         }
     };
-    private View.OnClickListener onClickListener_PicSave=new View.OnClickListener() {
+    private View.OnClickListener onClickListener_PicSave = new View.OnClickListener() {
         @Override
-        public void onClick(View v){
-            isSave=true;
+        public void onClick(View v) {
+            isSave = true;
         }
     };
 
-    private View.OnClickListener onClickListener_StartPlay=new View.OnClickListener() {
+    private View.OnClickListener onClickListener_StartPlay = new View.OnClickListener() {
         @Override
-        public void onClick(View v){
+        public void onClick(View v) {
             String netAddress = mEditNetAddress.getText().toString().trim();
-            if(!TextUtils.isEmpty(netAddress)){
+            if (!TextUtils.isEmpty(netAddress)) {
                 UrlInfo urlInfo = new UrlInfo();
                 urlInfo.setUrl(netAddress);
                 mUrlInfoService.save(urlInfo);
 
                 mNxpRtsp.SetUrl(netAddress);
-                mNxpRtsp.init(null,mVideoTexture);
+                mNxpRtsp.init(null, mVideoTexture);
                 mNxpRtsp.play();
             }
 
         }
     };
 
-    private View.OnClickListener onClickListener_Stop=new View.OnClickListener() {
+    private View.OnClickListener onClickListener_Stop = new View.OnClickListener() {
         @Override
-        public void onClick(View v){
+        public void onClick(View v) {
             mNxpRtsp.stop();
 
         }
     };
 
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Rtsp.mRun = false;
+        mNxpRtsp.stop();
+    }
 }

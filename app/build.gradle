@@ -45,5 +45,5 @@ dependencies {
     compile(name: 'libvlc-3.0.0', ext: 'aar')
     implementation files('libs/androidutils.jar')
     compile 'org.tensorflow:tensorflow-android:+'
-
+    implementation files('libs/libutils.jar')
 }
