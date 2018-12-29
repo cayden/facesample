@@ -10,7 +10,7 @@
          android:id="@+id/edit_net_address"
          android:layout_width="match_parent"
          android:layout_height="wrap_content"
-         android:text="  rtsp://admin:adminTUSI@192.168.1.64:554/h264/ch1/sub/av_stream">
+         android:text="rtsp://admin:adminTUSI@192.168.1.64:554/h264/ch1/sub/av_stream">
      </EditText>
     <!--
     rtsp://218.204.223.237:554/live/1/6D1E43167B3A7BDA/oby9efo80duh9bjf.sdp
@@ -60,7 +60,27 @@
              android:background="@mipmap/btn_main"
              android:textSize="12dp"
              android:text="保存图片" />
+
+         <Button
+             android:id="@+id/pic_register"
+             android:layout_width="70dp"
+             android:layout_height="25dp"
+             android:layout_toLeftOf="@+id/view0"
+             style="@style/Widget.AppCompat.Button"
+             android:background="@mipmap/btn_main"
+             android:textSize="12dp"
+             android:text="人脸库管理" />
      </LinearLayout>
+
+    <TextView
+        android:layout_below="@+id/sel_Buttons"
+        android:id="@+id/tv_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="相似度:"
+        android:textColor="@color/colorAccent"
+        android:textSize="16sp" />
+
     <include
         android:layout_marginTop="167dp"
         android:layout_marginBottom="350dp"
@@ -69,7 +89,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center_vertical|center_horizontal"
-        android:layout_below="@+id/sel_Buttons"
+        android:layout_below="@+id/tv_result"
         layout="@layout/camera_view" />
+
 
 </RelativeLayout>

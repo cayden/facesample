@@ -1,5 +1,6 @@
 package com.cayden.face;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -23,10 +24,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.cayden.face.facenet.Box;
+import com.cayden.face.facenet.FaceFeature;
 import com.cayden.face.facenet.Facenet;
 import com.cayden.face.facenet.MTCNN;
+import com.cayden.face.facenet.Utils;
 import com.cayden.face.utils.ImageUtils;
 import com.cayden.face.utils.NV21ToBitmap;
 import com.cayden.face.vlc.ConstData;
@@ -39,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Vector;
 
 import dou.utils.DLog;
@@ -47,7 +52,7 @@ import dou.utils.DisplayUtil;
 /**
  * 启动类
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     private static String TAG = "MainActivity";
     private static final String RTSP_URL_MAIN = "rtsp://admin:adminTUSI@192.168.1.64:554/h264/main/av_stream";
@@ -62,19 +67,22 @@ public class MainActivity extends AppCompatActivity {
     private Rtsp mNxpRtsp;
     private SurfaceView draw_view;
 
-
+    private TextView tv_result;
     private Button mBtnStop;
-    private Button mBtnStartPlay;
+    private Button mBtnStartPlay,mBtnRegister;
 
     private EditText mEditNetAddress;
     Button mRun_verify, mPicSave;
     boolean isSave = false;
+    private boolean isStart=false;
     protected int iw = 0, ih;
     private float scale_bit = 0;
     private final Object lock = new Object();
     private Facenet facenet;
     private MTCNN mtcnn;
 
+    private String foundName;
+    private double cmp;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,12 +102,25 @@ public class MainActivity extends AppCompatActivity {
         mPicSave = (Button) findViewById(R.id.pic_save);
         mPicSave.setOnClickListener(onClickListener_PicSave);
         mEditNetAddress = (EditText) findViewById(R.id.edit_net_address);
+        tv_result=(TextView)findViewById(R.id.tv_result);
+        mBtnRegister=(Button)findViewById(R.id.pic_register);
+        mBtnRegister.setOnClickListener(this);
 
         init();
         facenet = Facenet.getInstance();
         mtcnn = MTCNN.getInstance();
+        FaceDB.getInstance().loadFaces();
+
     }
 
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.pic_register:
+                startActivityForResult(new Intent(this, FaceManagerActivity.class), 10);
+                break;
+        }
+    }
 
     public void init() {
 
@@ -147,8 +168,52 @@ public class MainActivity extends AppCompatActivity {
                         isSave = false;
                     }
                     Vector<Box> boxes = mtcnn.detectFaces(bitmap, 20);
+
                     drawAnim(boxes, draw_view, scale_bit, 1, "");
-                    bitmap.recycle();
+
+                    if (boxes.size()==0) return ;
+                    for (int i=0;i<boxes.size();i++) Utils.drawBox(bitmap,boxes.get(i),1+bitmap.getWidth()/500 );
+                    Log.i("Main","[*]boxNum："+boxes.size());
+                    Box box=boxes.get(0);
+                    Rect rect1=box.transform2Rect();
+
+                    //MTCNN检测到的人脸框，再上下左右扩展margin个像素点，再放入facenet中。
+                    int margin=20; //20这个值是facenet中设置的。自己应该可以调整。
+                    Utils.rectExtend(bitmap,rect1,margin);
+                    //要比较的两个人脸，加厚Rect
+                    Utils.drawRect(bitmap,rect1,1+bitmap.getWidth()/100 );
+                    //(2)裁剪出人脸(只取第一张)
+                    final Bitmap face1=Utils.crop(bitmap,rect1);
+
+                    FaceFeature ff1=facenet.recognizeImage(face1);
+                    if(null==ff1||ff1.getFeature().length<0)return;
+                    List<FaceDB.FaceRegist> mResgist =FaceDB.getInstance().mRegister;
+                    double tempScore=-1;
+                    for(int i=0;i<mResgist.size();i++){
+                        FaceDB.FaceRegist faceRegist= mResgist.get(i);
+                        double temp= ff1.compare(faceRegist.faceFeature);
+                        /**
+                         * 找出值最小的
+                          */
+                        if(tempScore==-1){
+                            tempScore=temp;//第一次直接赋值
+                            foundName=faceRegist.mName;
+                        }else{
+                            if(tempScore>temp){
+                                foundName=faceRegist.mName;
+                                tempScore=temp;
+                            }
+                        }
+                        Log.d(TAG,">>>>>>>>>>temp="+temp+",tempScore="+tempScore+",foundName："+foundName);
+                    }
+                    cmp=tempScore;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            tv_result.setText(String.format("名字:%s  相似度 :  %.4f", foundName,cmp) );
+                        }
+                    });
                 }
 
             }
@@ -262,7 +327,8 @@ public class MainActivity extends AppCompatActivity {
                 UrlInfo urlInfo = new UrlInfo();
                 urlInfo.setUrl(netAddress);
                 mUrlInfoService.save(urlInfo);
-
+                Rtsp.mRun = true;
+                isStart=true;
                 mNxpRtsp.SetUrl(netAddress);
                 mNxpRtsp.init(null, mVideoTexture);
                 mNxpRtsp.play();
@@ -283,7 +349,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Rtsp.mRun = false;
-        mNxpRtsp.stop();
+        if(null!=mNxpRtsp&&isStart){
+            Rtsp.mRun = false;
+            mNxpRtsp.stop();
+        }
+
     }
 }
